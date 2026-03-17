@@ -418,7 +418,7 @@
 <!-- Firebase -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
+import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/11.4.0/firebase-auth.js";
 import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, where, orderBy }
   from "https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore.js";
@@ -426,6 +426,8 @@ import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, q
 const firebaseConfig = {
   apiKey: "AIzaSyA5RG8P6bSOzG4wxl4isCbX1mBrOyNSMTc",
   authDomain: "cfp-rev.firebaseapp.com",
+  // GitHub Pages redirect fix
+,
   projectId: "cfp-rev",
   storageBucket: "cfp-rev.firebasestorage.app",
   messagingSenderId: "609045164162",
@@ -446,15 +448,21 @@ let pendingDeleteId = null;
 window.loginGoogle = async () => {
   try {
     const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
+    await signInWithRedirect(auth, provider);
   } catch(e) {
     showToast('Erro ao entrar. Tenta de novo.', 'red');
   }
 };
 
+// Handle redirect result first
+getRedirectResult(auth).catch(() => {});
+
 window.logout = async () => {
   await signOut(auth);
 };
+
+// First handle any redirect result
+getRedirectResult(auth).catch((e) => console.log('redirect err', e));
 
 onAuthStateChanged(auth, async (user) => {
   document.getElementById('loadingOverlay').style.display = 'none';
@@ -462,7 +470,6 @@ onAuthStateChanged(auth, async (user) => {
     currentUser = user;
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('appScreen').style.display = '';
-    // Avatar
     const av = document.getElementById('userAvatar');
     if (user.photoURL) {
       av.innerHTML = `<img src="${user.photoURL}" alt="">`;
