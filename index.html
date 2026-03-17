@@ -425,7 +425,7 @@ import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, q
 
 const firebaseConfig = {
   apiKey: "AIzaSyA5RG8P6bSOzG4wxl4isCbX1mBrOyNSMTc",
-  authDomain: "cfp-rev.firebaseapp.com",
+  authDomain: "vmolossi.github.io",
   // GitHub Pages redirect fix
 ,
   projectId: "cfp-rev",
@@ -460,6 +460,14 @@ getRedirectResult(auth).catch(() => {});
 window.logout = async () => {
   await signOut(auth);
 };
+
+// Timeout fallback - show login if Firebase auth doesn't respond in 5s
+setTimeout(() => {
+  if (document.getElementById('loadingOverlay').style.display !== 'none') {
+    document.getElementById('loadingOverlay').style.display = 'none';
+    document.getElementById('loginScreen').style.display = 'flex';
+  }
+}, 5000);
 
 // First handle any redirect result
 getRedirectResult(auth).catch((e) => console.log('redirect err', e));
