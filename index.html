@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>CFP · Revisão de Erros</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #1c2330;
+    --border: #30363d;
+    --accent: #3b82f6;
+    --accent2: #60a5fa;
+    --accent-dim: rgba(59,130,246,0.12);
+    --text: #e6edf3;
+    --text2: #8b949e;
+    --text3: #484f58;
+    --green: #3fb950;
+    --green-dim: rgba(63,185,80,0.12);
+    --yellow: #d29922;
+    --yellow-dim: rgba(210,153,34,0.12);
+    --red: #f85149;
+    --red-dim: rgba(248,81,73,0.12);
+    --purple: #a371f7;
+    --purple-dim: rgba(163,113,247,0.12);
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; font-size: 14px; }
+
+  /* LOGIN */
+  #loginScreen {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 24px;
+    text-align: center;
+  }
+  .login-icon { font-size: 48px; margin-bottom: 20px; }
+  .login-title { font-family: 'DM Serif Display', serif; font-size: 28px; margin-bottom: 8px; }
+  .login-title span { color: var(--accent2); }
+  .login-sub { font-size: 13px; color: var(--text2); margin-bottom: 40px; line-height: 1.6; max-width: 280px; }
+  .btn-google {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 28px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-size: 14px; font-weight: 600;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-google:hover { border-color: var(--accent); background: var(--surface2); }
+  .btn-google svg { width: 20px; height: 20px; flex-shrink: 0; }
+  .login-note { font-size: 11px; color: var(--text3); margin-top: 20px; }
+
+  /* APP */
+  #appScreen { display: none; }
+
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .header-left { display: flex; align-items: center; gap: 10px; }
+  .header-title { font-family: 'DM Serif Display', serif; font-size: 18px; }
+  .header-title span { color: var(--accent2); }
+  .header-right { display: flex; align-items: center; gap: 8px; }
+  .user-avatar {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--accent-dim); border: 1px solid var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 600; color: var(--accent2);
+    overflow: hidden;
+  }
+  .user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .btn-logout {
+    background: none; border: none; color: var(--text3);
+    font-size: 11px; cursor: pointer; font-family: 'DM Sans', sans-serif;
+    padding: 4px 6px; border-radius: 4px; transition: color 0.2s;
+  }
+  .btn-logout:hover { color: var(--red); }
+  .header-date { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text2); text-transform: uppercase; }
+
+  .tabs {
+    display: flex; background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto; -webkit-overflow-scrolling: touch;
+  }
+  .tab {
+    flex: 1; min-width: 72px; padding: 11px 6px;
+    text-align: center; font-size: 11px; font-weight: 500;
+    color: var(--text2); cursor: pointer;
+    border-bottom: 2px solid transparent; transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .tab.active { color: var(--accent2); border-bottom-color: var(--accent); }
+
+  .content { padding: 14px; max-width: 680px; margin: 0 auto; }
+
+  /* LOADING */
+  .loading-overlay {
+    position: fixed; inset: 0;
+    background: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 999; flex-direction: column; gap: 16px;
+  }
+  .spinner {
+    width: 32px; height: 32px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { font-size: 13px; color: var(--text2); }
+
+  /* CARDS */
+  .hoje-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .hoje-title { font-family: 'DM Serif Display', serif; font-size: 18px; }
+  .badge { font-family: 'DM Mono', monospace; font-size: 11px; padding: 3px 8px; border-radius: 20px; font-weight: 500; }
+  .badge-blue { background: var(--accent-dim); color: var(--accent2); }
+  .badge-green { background: var(--green-dim); color: var(--green); }
+  .badge-yellow { background: var(--yellow-dim); color: var(--yellow); }
+  .badge-red { background: var(--red-dim); color: var(--red); }
+
+  .empty-state { text-align: center; padding: 48px 24px; color: var(--text2); }
+  .empty-state .icon { font-size: 36px; margin-bottom: 12px; }
+  .empty-state p { font-size: 13px; line-height: 1.6; }
+
+  .rev-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 14px 16px; margin-bottom: 10px;
+    transition: border-color 0.2s;
+  }
+  .rev-card:hover { border-color: var(--accent); }
+  .rev-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+  .rev-card-left { flex: 1; min-width: 0; }
+  .rev-card-tema { font-weight: 600; font-size: 13px; margin-bottom: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rev-card-modulo { font-size: 11px; color: var(--text2); font-family: 'DM Mono', monospace; text-transform: uppercase; letter-spacing: 0.3px; }
+  .rev-numero { font-family: 'DM Mono', monospace; font-size: 11px; padding: 2px 7px; border-radius: 20px; white-space: nowrap; flex-shrink: 0; }
+  .rev-1 { background: var(--accent-dim); color: var(--accent2); }
+  .rev-2 { background: var(--yellow-dim); color: var(--yellow); }
+  .rev-3 { background: var(--purple-dim); color: var(--purple); }
+  .rev-4 { background: var(--green-dim); color: var(--green); }
+  .rev-card-erro { font-size: 12px; color: var(--text2); line-height: 1.5; margin-bottom: 10px; }
+  .rev-actions { display: flex; gap: 8px; }
+  .btn-acertei {
+    flex: 1; padding: 8px;
+    background: var(--green-dim); border: 1px solid rgba(63,185,80,0.3);
+    border-radius: var(--radius-sm); color: var(--green);
+    font-size: 12px; font-weight: 600; font-family: 'DM Sans', sans-serif;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .btn-acertei:hover { background: rgba(63,185,80,0.22); }
+  .btn-errei {
+    flex: 1; padding: 8px;
+    background: var(--red-dim); border: 1px solid rgba(248,81,73,0.3);
+    border-radius: var(--radius-sm); color: var(--red);
+    font-size: 12px; font-weight: 600; font-family: 'DM Sans', sans-serif;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .btn-errei:hover { background: rgba(248,81,73,0.22); }
+
+  /* FORM */
+  .form-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; }
+  .form-title { font-family: 'DM Serif Display', serif; font-size: 16px; margin-bottom: 16px; }
+  .form-group { margin-bottom: 13px; }
+  .form-label { display: block; font-size: 11px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; }
+  .form-select, .form-textarea, .form-input {
+    width: 100%; background: var(--bg); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); color: var(--text);
+    font-family: 'DM Sans', sans-serif; font-size: 13px; padding: 10px 12px;
+    transition: border-color 0.2s; -webkit-appearance: none; appearance: none;
+  }
+  .form-select:focus, .form-textarea:focus, .form-input:focus { outline: none; border-color: var(--accent); }
+  .form-textarea { resize: vertical; min-height: 65px; line-height: 1.5; }
+  .tipo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+  .tipo-option {
+    padding: 9px 8px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+    cursor: pointer; transition: all 0.2s; text-align: center;
+    font-size: 11px; font-weight: 500; color: var(--text2); line-height: 1.3;
+  }
+  .tipo-option:hover { border-color: var(--accent); color: var(--text); }
+  .tipo-option.selected { border-color: var(--accent); background: var(--accent-dim); color: var(--accent2); }
+  .ciclo-info { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 11px 13px; margin-bottom: 13px; }
+  .ciclo-info-title { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; margin-bottom: 7px; }
+  .ciclo-datas { display: flex; gap: 5px; flex-wrap: wrap; }
+  .ciclo-data-item { font-family: 'DM Mono', monospace; font-size: 11px; padding: 3px 7px; border-radius: 20px; }
+  .btn-registrar {
+    width: 100%; padding: 13px;
+    background: var(--accent); border: none; border-radius: var(--radius-sm);
+    color: white; font-size: 14px; font-weight: 600;
+    font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.2s;
+  }
+  .btn-registrar:hover { background: #2563eb; transform: translateY(-1px); }
+  .btn-registrar:active { transform: translateY(0); }
+  .btn-registrar:disabled { background: var(--border); color: var(--text3); cursor: not-allowed; transform: none; }
+
+  /* HISTÓRICO */
+  .hist-filters { display: flex; gap: 6px; margin-bottom: 13px; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 2px; }
+  .hist-filter {
+    padding: 5px 11px; border: 1px solid var(--border); border-radius: 20px;
+    font-size: 11px; font-weight: 500; color: var(--text2); cursor: pointer;
+    white-space: nowrap; transition: all 0.2s; background: transparent;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .hist-filter.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent2); }
+  .hist-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 13px 15px; margin-bottom: 8px; }
+  .hist-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 5px; }
+  .hist-tema { font-weight: 600; font-size: 13px; }
+  .hist-meta { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; margin-bottom: 5px; }
+  .hist-meta-item { font-size: 11px; color: var(--text2); font-family: 'DM Mono', monospace; }
+  .hist-erro { font-size: 12px; color: var(--text2); line-height: 1.5; margin-bottom: 7px; }
+  .hist-datas { display: flex; gap: 4px; flex-wrap: wrap; }
+  .hist-data-chip { font-family: 'DM Mono', monospace; font-size: 10px; padding: 2px 6px; border-radius: 20px; }
+  .chip-pendente { background: var(--yellow-dim); color: var(--yellow); }
+  .chip-feito    { background: var(--green-dim);  color: var(--green); }
+  .chip-reinicio { background: var(--red-dim);    color: var(--red); }
+  .chip-futuro   { background: var(--surface2);   color: var(--text3); border: 1px solid var(--border); }
+  .hist-delete { background: none; border: none; color: var(--text3); cursor: pointer; font-size: 15px; padding: 2px 4px; border-radius: 4px; transition: color 0.2s; flex-shrink: 0; }
+  .hist-delete:hover { color: var(--red); }
+
+  /* STATS */
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; text-align: center; }
+  .stat-number { font-family: 'DM Serif Display', serif; font-size: 30px; line-height: 1; margin-bottom: 4px; }
+  .stat-label { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.4px; }
+  .modulos-grid { display: grid; gap: 7px; }
+  .modulo-bar-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 11px 13px; }
+  .modulo-bar-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+  .modulo-bar-name { font-size: 12px; font-weight: 500; }
+  .modulo-bar-count { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text2); }
+  .modulo-bar-track { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .modulo-bar-fill { height: 100%; border-radius: 2px; background: var(--accent); transition: width 0.5s ease; }
+  .section-title { font-family: 'DM Serif Display', serif; font-size: 17px; margin-bottom: 14px; }
+  .divider { height: 1px; background: var(--border); margin: 18px 0; }
+
+  /* TOAST */
+  .toast {
+    position: fixed; bottom: 24px; left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 11px 18px;
+    font-size: 13px; font-weight: 500; z-index: 999;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    white-space: nowrap; box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.green { border-color: rgba(63,185,80,0.4); color: var(--green); }
+  .toast.red   { border-color: rgba(248,81,73,0.4);  color: var(--red); }
+  .toast.blue  { border-color: rgba(59,130,246,0.4); color: var(--accent2); }
+
+  /* MODAL */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 200; align-items: center; justify-content: center; padding: 20px; }
+  .modal-overlay.show { display: flex; }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px; max-width: 300px; width: 100%; }
+  .modal-title { font-family: 'DM Serif Display', serif; font-size: 16px; margin-bottom: 8px; }
+  .modal-text { font-size: 13px; color: var(--text2); margin-bottom: 18px; line-height: 1.5; }
+  .modal-actions { display: flex; gap: 8px; }
+  .btn-cancel { flex: 1; padding: 10px; background: transparent; border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text2); font-size: 13px; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.2s; }
+  .btn-cancel:hover { border-color: var(--text2); color: var(--text); }
+  .btn-confirm-del { flex: 1; padding: 10px; background: var(--red-dim); border: 1px solid rgba(248,81,73,0.3); border-radius: var(--radius-sm); color: var(--red); font-size: 13px; font-weight: 600; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.2s; }
+  .btn-confirm-del:hover { background: rgba(248,81,73,0.22); }
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="loading-text">Carregando…</div>
+</div>
+
+<!-- LOGIN -->
+<div id="loginScreen" style="display:none">
+  <div class="login-icon">📚</div>
+  <div class="login-title">CFP <span>·</span> Revisão</div>
+  <div class="login-sub">Seu caderno de erros inteligente.<br>Acesse de qualquer dispositivo.</div>
+  <button class="btn-google" onclick="loginGoogle()">
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+    </svg>
+    Entrar com Google
+  </button>
+  <div class="login-note">Seus dados ficam salvos na nuvem e sincronizam em todos os dispositivos.</div>
+</div>
+
+<!-- APP -->
+<div id="appScreen">
+  <div class="header">
+    <div class="header-left">
+      <div>
+        <div class="header-title">CFP <span>·</span> Revisão</div>
+        <div class="header-date" id="headerDate"></div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="user-avatar" id="userAvatar"></div>
+      <button class="btn-logout" onclick="logout()">Sair</button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="showTab('hoje')">📅 Hoje</div>
+    <div class="tab" onclick="showTab('registrar')">＋ Registrar</div>
+    <div class="tab" onclick="showTab('historico')">📋 Histórico</div>
+    <div class="tab" onclick="showTab('stats')">📊 Stats</div>
+  </div>
+
+  <div class="content">
+
+    <!-- HOJE -->
+    <div id="tab-hoje">
+      <div class="hoje-header">
+        <div class="hoje-title">Para revisar hoje</div>
+        <div class="badge badge-blue" id="hojeBadge">0 itens</div>
+      </div>
+      <div id="hojeList"></div>
+    </div>
+
+    <!-- REGISTRAR -->
+    <div id="tab-registrar" style="display:none">
+      <div class="form-card">
+        <div class="form-title">Registrar novo erro</div>
+        <div class="form-group">
+          <label class="form-label">Módulo CFP</label>
+          <select class="form-select" id="fModulo">
+            <option value="">Selecionar módulo…</option>
+            <option>Planejamento Financeiro</option>
+            <option>Investimentos</option>
+            <option>Previdência</option>
+            <option>Gestão de Risco / Seguros</option>
+            <option>Tributação</option>
+            <option>Ética e Regulação</option>
+            <option>Gestão Patrimonial</option>
+            <option>Crédito</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tema específico</label>
+          <input class="form-input" id="fTema" type="text" placeholder="Ex: PGBL vs VGBL, Duration de Macaulay…">
+        </div>
+        <div class="form-group">
+          <label class="form-label">O que errei</label>
+          <textarea class="form-textarea" id="fErro" placeholder="Descreve o erro em uma frase objetiva…"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tipo de erro</label>
+          <div class="tipo-grid" id="tipoGrid">
+            <div class="tipo-option" onclick="selectTipo(this,'Não sabia')">Não sabia</div>
+            <div class="tipo-option" onclick="selectTipo(this,'Confusão de conceito')">Confusão de conceito</div>
+            <div class="tipo-option" onclick="selectTipo(this,'Fórmula / Cálculo')">Fórmula / Cálculo</div>
+            <div class="tipo-option" onclick="selectTipo(this,'Normativo / Regra')">Normativo / Regra</div>
+            <div class="tipo-option" onclick="selectTipo(this,'Interpretação')">Interpretação</div>
+          </div>
+        </div>
+        <div class="ciclo-info" id="cicloPreview" style="display:none">
+          <div class="ciclo-info-title">Datas de revisão calculadas</div>
+          <div class="ciclo-datas" id="cicloDatas"></div>
+        </div>
+        <button class="btn-registrar" id="btnRegistrar" onclick="registrarErro()" disabled>Registrar erro</button>
+      </div>
+    </div>
+
+    <!-- HISTÓRICO -->
+    <div id="tab-historico" style="display:none">
+      <div class="section-title">Histórico de erros</div>
+      <div class="hist-filters">
+        <button class="hist-filter active" onclick="filtrarHist('todos',this)">Todos</button>
+        <button class="hist-filter" onclick="filtrarHist('em_revisao',this)">Em revisão</button>
+        <button class="hist-filter" onclick="filtrarHist('concluido',this)">Concluídos</button>
+        <button class="hist-filter" onclick="filtrarHist('reiniciado',this)">Reiniciados</button>
+      </div>
+      <div id="histList"></div>
+    </div>
+
+    <!-- STATS -->
+    <div id="tab-stats" style="display:none">
+      <div class="section-title">Visão geral</div>
+      <div class="stats-grid" id="statsGrid"></div>
+      <div class="divider"></div>
+      <div class="section-title" style="font-size:15px;margin-bottom:12px">Erros por módulo</div>
+      <div class="modulos-grid" id="modulosGrid"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalDel">
+  <div class="modal">
+    <div class="modal-title">Excluir registro?</div>
+    <div class="modal-text">Essa ação não pode ser desfeita.</div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
+      <button class="btn-confirm-del" onclick="confirmDelete()">Excluir</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
+  from "https://www.gstatic.com/firebasejs/11.4.0/firebase-auth.js";
+import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, where, orderBy }
+  from "https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyA5RG8P6bSOzG4wxl4isCbX1mBrOyNSMTc",
+  authDomain: "cfp-rev.firebaseapp.com",
+  projectId: "cfp-rev",
+  storageBucket: "cfp-rev.firebasestorage.app",
+  messagingSenderId: "609045164162",
+  appId: "1:609045164162:web:9c6fe7d0763ccbfcdbc49b"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+let currentUser = null;
+let errosCache = [];
+let currentFilter = 'todos';
+let selectedTipo = '';
+let pendingDeleteId = null;
+
+// ── AUTH ──────────────────────────────────────────────────────────────────
+window.loginGoogle = async () => {
+  try {
+    const provider = new GoogleAuthProvider();
+    await signInWithPopup(auth, provider);
+  } catch(e) {
+    showToast('Erro ao entrar. Tenta de novo.', 'red');
+  }
+};
+
+window.logout = async () => {
+  await signOut(auth);
+};
+
+onAuthStateChanged(auth, async (user) => {
+  document.getElementById('loadingOverlay').style.display = 'none';
+  if (user) {
+    currentUser = user;
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('appScreen').style.display = '';
+    // Avatar
+    const av = document.getElementById('userAvatar');
+    if (user.photoURL) {
+      av.innerHTML = `<img src="${user.photoURL}" alt="">`;
+    } else {
+      av.textContent = user.displayName?.[0] || 'U';
+    }
+    await loadErros();
+    renderHoje();
+  } else {
+    currentUser = null;
+    errosCache = [];
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('appScreen').style.display = 'none';
+  }
+});
+
+// ── FIRESTORE ─────────────────────────────────────────────────────────────
+async function loadErros() {
+  if (!currentUser) return;
+  try {
+    const q = query(
+      collection(db, 'erros'),
+      where('uid', '==', currentUser.uid),
+      orderBy('data', 'desc')
+    );
+    const snap = await getDocs(q);
+    errosCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch(e) {
+    // fallback sem orderBy se índice não existir ainda
+    try {
+      const q2 = query(collection(db, 'erros'), where('uid', '==', currentUser.uid));
+      const snap2 = await getDocs(q2);
+      errosCache = snap2.docs.map(d => ({ id: d.id, ...d.data() }))
+        .sort((a,b) => b.data.localeCompare(a.data));
+    } catch(e2) { errosCache = []; }
+  }
+}
+
+async function saveErro(erro) {
+  const docRef = await addDoc(collection(db, 'erros'), { ...erro, uid: currentUser.uid });
+  return docRef.id;
+}
+
+async function updateErro(id, data) {
+  await updateDoc(doc(db, 'erros', id), data);
+}
+
+async function removeErro(id) {
+  await deleteDoc(doc(db, 'erros', id));
+}
+
+// ── DATE UTILS ────────────────────────────────────────────────────────────
+function today() { return new Date().toISOString().split('T')[0]; }
+function addDays(dateStr, n) {
+  const d = new Date(dateStr + 'T12:00:00');
+  d.setDate(d.getDate() + n);
+  return d.toISOString().split('T')[0];
+}
+function fmtBR(s) { const [y,m,d] = s.split('-'); return `${d}/${m}`; }
+function fmtBRFull(s) { const [y,m,d] = s.split('-'); return `${d}/${m}/${y.slice(2)}`; }
+function getCiclo(tipo) {
+  return (tipo === 'Normativo / Regra' || tipo === 'Fórmula / Cálculo') ? [1,3,7,21] : [1,3,7,14];
+}
+function calcDatas(dateStr, tipo) { return getCiclo(tipo).map(d => addDays(dateStr, d)); }
+
+// ── HEADER DATE ───────────────────────────────────────────────────────────
+(function(){
+  const d = new Date();
+  const dias = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  document.getElementById('headerDate').textContent =
+    `${dias[d.getDay()]}, ${d.getDate()} ${meses[d.getMonth()]}`;
+})();
+
+// ── TABS ──────────────────────────────────────────────────────────────────
+window.showTab = (name) => {
+  ['hoje','registrar','historico','stats'].forEach(t => {
+    document.getElementById('tab-'+t).style.display = t === name ? '' : 'none';
+  });
+  document.querySelectorAll('.tab').forEach((el, i) => {
+    el.classList.toggle('active', ['hoje','registrar','historico','stats'][i] === name);
+  });
+  if (name === 'hoje') renderHoje();
+  if (name === 'historico') renderHistorico(currentFilter);
+  if (name === 'stats') renderStats();
+};
+
+// ── FORM ──────────────────────────────────────────────────────────────────
+window.selectTipo = (el, tipo) => {
+  document.querySelectorAll('.tipo-option').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedTipo = tipo;
+  updateCicloPreview();
+  validateForm();
+};
+
+function updateCicloPreview() {
+  if (!selectedTipo) { document.getElementById('cicloPreview').style.display = 'none'; return; }
+  const datas = calcDatas(today(), selectedTipo);
+  const ciclo = getCiclo(selectedTipo);
+  const colors = ['#60a5fa','#d29922','#a371f7','#3fb950'];
+  const labels = ['Rev.1','Rev.2','Rev.3','Rev.4'];
+  let html = datas.map((d,i) =>
+    `<span class="ciclo-data-item" style="background:rgba(${hexRgb(colors[i])},0.12);color:${colors[i]}">${labels[i]} · ${fmtBR(d)} (+${ciclo[i]}d)</span>`
+  ).join('');
+  document.getElementById('cicloDatas').innerHTML = html;
+  document.getElementById('cicloPreview').style.display = '';
+}
+
+function hexRgb(h) {
+  return [1,3,5].map(i => parseInt(h.slice(i,i+2),16)).join(',');
+}
+
+function validateForm() {
+  const ok = document.getElementById('fModulo').value &&
+             document.getElementById('fTema').value.trim() &&
+             document.getElementById('fErro').value.trim() &&
+             selectedTipo;
+  document.getElementById('btnRegistrar').disabled = !ok;
+}
+['fModulo','fTema','fErro'].forEach(id =>
+  document.getElementById(id).addEventListener('input', validateForm)
+);
+
+window.registrarErro = async () => {
+  const btn = document.getElementById('btnRegistrar');
+  btn.disabled = true;
+  btn.textContent = 'Salvando…';
+  const t = today();
+  const tipo = selectedTipo;
+  const datas = calcDatas(t, tipo);
+  const erro = {
+    data: t,
+    modulo: document.getElementById('fModulo').value,
+    tema: document.getElementById('fTema').value.trim(),
+    erro: document.getElementById('fErro').value.trim(),
+    tipo,
+    revisoes: datas.map((d,i) => ({ data: d, status: 'pendente', numero: i+1 })),
+    status: 'em_revisao',
+  };
+  try {
+    const id = await saveErro(erro);
+    errosCache.unshift({ id, ...erro });
+    // reset
+    document.getElementById('fModulo').value = '';
+    document.getElementById('fTema').value = '';
+    document.getElementById('fErro').value = '';
+    document.querySelectorAll('.tipo-option').forEach(o => o.classList.remove('selected'));
+    selectedTipo = '';
+    document.getElementById('cicloPreview').style.display = 'none';
+    btn.textContent = 'Registrar erro';
+    showToast('✓ Registrado! Primeira revisão em ' + fmtBR(datas[0]), 'green');
+    showTab('hoje');
+  } catch(e) {
+    btn.disabled = false;
+    btn.textContent = 'Registrar erro';
+    showToast('Erro ao salvar. Tenta de novo.', 'red');
+  }
+};
+
+// ── HOJE ──────────────────────────────────────────────────────────────────
+function renderHoje() {
+  const t = today();
+  const itens = [];
+  errosCache.forEach(e => {
+    if (e.status === 'concluido') return;
+    e.revisoes.forEach((r, ri) => {
+      if (r.data === t && r.status === 'pendente') itens.push({ erro: e, revIdx: ri });
+    });
+  });
+  const badge = document.getElementById('hojeBadge');
+  badge.textContent = itens.length + (itens.length === 1 ? ' item' : ' itens');
+  badge.className = 'badge ' + (itens.length > 0 ? 'badge-yellow' : 'badge-green');
+  const list = document.getElementById('hojeList');
+  if (itens.length === 0) {
+    list.innerHTML = `<div class="empty-state"><div class="icon">🎯</div><p>Nenhuma revisão pendente para hoje.<br>Bora fazer questões!</p></div>`;
+    return;
+  }
+  const revLabels = ['Rev.1 · +1d','Rev.2 · +3d','Rev.3 · +7d','Rev.4 · último'];
+  const revClasses = ['rev-1','rev-2','rev-3','rev-4'];
+  list.innerHTML = itens.map(({erro, revIdx}) => `
+    <div class="rev-card" id="rc-${erro.id}-${revIdx}">
+      <div class="rev-card-top">
+        <div class="rev-card-left">
+          <div class="rev-card-tema">${esc(erro.tema)}</div>
+          <div class="rev-card-modulo">${esc(erro.modulo)}</div>
+        </div>
+        <span class="rev-numero ${revClasses[revIdx]}">${revLabels[revIdx]}</span>
+      </div>
+      <div class="rev-card-erro">${esc(erro.erro)}</div>
+      <div class="rev-actions">
+        <button class="btn-acertei" onclick="marcarRevisao('${erro.id}',${revIdx},true)">✓ Acertei</button>
+        <button class="btn-errei" onclick="marcarRevisao('${erro.id}',${revIdx},false)">✗ Errei</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+window.marcarRevisao = async (erroId, revIdx, acertou) => {
+  const e = errosCache.find(x => x.id === erroId);
+  if (!e) return;
+  e.revisoes[revIdx].status = acertou ? 'feito' : 'reiniciado';
+  if (acertou) {
+    const todasFeitas = e.revisoes.every(r => r.status === 'feito');
+    if (todasFeitas) { e.status = 'concluido'; showToast('🏆 Concluído! Tema dominado.', 'green'); }
+    else { showToast('✓ Revisão marcada!', 'green'); }
+  } else {
+    const novasDatas = calcDatas(today(), e.tipo);
+    e.revisoes = novasDatas.map((d,i) => ({ data: d, status: 'pendente', numero: i+1 }));
+    e.status = 'em_revisao';
+    showToast('↺ Ciclo reiniciado. Não desiste!', 'red');
+  }
+  try {
+    await updateErro(erroId, { revisoes: e.revisoes, status: e.status });
+  } catch(_) {}
+  const card = document.getElementById(`rc-${erroId}-${revIdx}`);
+  if (card) {
+    card.style.transition = 'opacity 0.3s, transform 0.3s';
+    card.style.opacity = '0'; card.style.transform = 'translateX(20px)';
+    setTimeout(() => renderHoje(), 320);
+  }
+};
+
+// ── HISTÓRICO ─────────────────────────────────────────────────────────────
+window.filtrarHist = (f, el) => {
+  currentFilter = f;
+  document.querySelectorAll('.hist-filter').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  renderHistorico(f);
+};
+
+function renderHistorico(filtro) {
+  let data = errosCache;
+  if (filtro !== 'todos') data = data.filter(e => e.status === filtro);
+  const list = document.getElementById('histList');
+  if (data.length === 0) {
+    list.innerHTML = `<div class="empty-state"><div class="icon">📭</div><p>Nenhum registro aqui ainda.</p></div>`;
+    return;
+  }
+  const t = today();
+  const statusBadge = { em_revisao: '<span class="badge badge-yellow">Em revisão</span>', concluido: '<span class="badge badge-green">Concluído</span>', reiniciado: '<span class="badge badge-red">Reiniciado</span>' };
+  list.innerHTML = data.map(e => {
+    const chips = e.revisoes.map((r,i) => {
+      let cls = 'chip-futuro', label = `R${i+1}`;
+      if (r.status === 'feito')           { cls = 'chip-feito';    label = `R${i+1} ✓`; }
+      else if (r.status === 'reiniciado') { cls = 'chip-reinicio'; label = `R${i+1} ↺`; }
+      else if (r.data <= t)               { cls = 'chip-pendente'; label = r.data === t ? `R${i+1} hoje` : `R${i+1} atrasado`; }
+      return `<span class="hist-data-chip ${cls}" title="${fmtBRFull(r.data)}">${label} ${fmtBR(r.data)}</span>`;
+    }).join('');
+    return `<div class="hist-card">
+      <div class="hist-card-top">
+        <div class="hist-tema">${esc(e.tema)}</div>
+        <button class="hist-delete" onclick="deleteErro('${e.id}')">🗑</button>
+      </div>
+      <div class="hist-meta">
+        <span class="hist-meta-item">${esc(e.modulo)}</span>
+        <span class="hist-meta-item">·</span>
+        <span class="hist-meta-item">${esc(e.tipo)}</span>
+        <span class="hist-meta-item">·</span>
+        <span class="hist-meta-item">${fmtBRFull(e.data)}</span>
+        ${statusBadge[e.status]||''}
+      </div>
+      <div class="hist-erro">${esc(e.erro)}</div>
+      <div class="hist-datas">${chips}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── DELETE ─────────────────────────────────────────────────────────────────
+window.deleteErro = (id) => { pendingDeleteId = id; document.getElementById('modalDel').classList.add('show'); };
+window.closeModal = () => { pendingDeleteId = null; document.getElementById('modalDel').classList.remove('show'); };
+window.confirmDelete = async () => {
+  try { await removeErro(pendingDeleteId); } catch(_) {}
+  errosCache = errosCache.filter(e => e.id !== pendingDeleteId);
+  closeModal();
+  renderHistorico(currentFilter);
+  showToast('Registro excluído.', 'blue');
+};
+document.getElementById('modalDel').addEventListener('click', e => {
+  if (e.target === document.getElementById('modalDel')) closeModal();
+});
+
+// ── STATS ──────────────────────────────────────────────────────────────────
+function renderStats() {
+  const data = errosCache;
+  const t = today();
+  const total = data.length;
+  const concluidos = data.filter(e => e.status === 'concluido').length;
+  const emRevisao = data.filter(e => e.status === 'em_revisao').length;
+  const pendHoje = data.reduce((acc,e) => {
+    if (e.status === 'concluido') return acc;
+    return acc + e.revisoes.filter(r => r.data === t && r.status === 'pendente').length;
+  }, 0);
+  document.getElementById('statsGrid').innerHTML = `
+    <div class="stat-card"><div class="stat-number" style="color:var(--text)">${total}</div><div class="stat-label">Total de erros</div></div>
+    <div class="stat-card"><div class="stat-number" style="color:var(--yellow)">${emRevisao}</div><div class="stat-label">Em revisão</div></div>
+    <div class="stat-card"><div class="stat-number" style="color:var(--green)">${concluidos}</div><div class="stat-label">Concluídos</div></div>
+    <div class="stat-card"><div class="stat-number" style="color:var(--accent2)">${pendHoje}</div><div class="stat-label">Para hoje</div></div>
+  `;
+  const modulos = {};
+  data.forEach(e => { modulos[e.modulo] = (modulos[e.modulo]||0)+1; });
+  const sorted = Object.entries(modulos).sort((a,b) => b[1]-a[1]);
+  const max = sorted[0]?.[1] || 1;
+  document.getElementById('modulosGrid').innerHTML = sorted.map(([mod,count]) => `
+    <div class="modulo-bar-card">
+      <div class="modulo-bar-top">
+        <span class="modulo-bar-name">${esc(mod)}</span>
+        <span class="modulo-bar-count">${count} erro${count>1?'s':''}</span>
+      </div>
+      <div class="modulo-bar-track"><div class="modulo-bar-fill" style="width:${Math.round(count/max*100)}%"></div></div>
+    </div>
+  `).join('') || '<div style="color:var(--text2);font-size:13px;">Nenhum dado ainda.</div>';
+}
+
+// ── TOAST ──────────────────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg, type='blue') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = `toast ${type} show`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+}
+window.showToast = showToast;
+
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+</script>
+</body>
+</html>
