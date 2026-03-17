@@ -424,8 +424,6 @@ import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, q
 const firebaseConfig = {
   apiKey: "AIzaSyA5RG8P6bSOzG4wxl4isCbX1mBrOyNSMTc",
   authDomain: "cfp-rev.firebaseapp.com",
-  // GitHub Pages redirect fix
-,
   projectId: "cfp-rev",
   storageBucket: "cfp-rev.firebasestorage.app",
   messagingSenderId: "609045164162",
@@ -443,32 +441,38 @@ let selectedTipo = '';
 let pendingDeleteId = null;
 
 // ── AUTH ──────────────────────────────────────────────────────────────────
-window.loginGoogle = async () => {
+window.loginEmail = async () => {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass = document.getElementById('loginPassword').value;
+  const errEl = document.getElementById('loginError');
+  errEl.style.display = 'none';
+  if (!email || !pass) { errEl.textContent = 'Preenche email e senha.'; errEl.style.display = ''; return; }
   try {
-    const provider = new GoogleAuthProvider();
-    await signInWithRedirect(auth, provider);
+    await signInWithEmailAndPassword(auth, email, pass);
   } catch(e) {
-    showToast('Erro ao entrar. Tenta de novo.', 'red');
+    errEl.textContent = 'Email ou senha incorretos.';
+    errEl.style.display = '';
   }
 };
 
-// Handle redirect result first
-getRedirectResult(auth).catch(() => {});
+window.cadastrarEmail = async () => {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass = document.getElementById('loginPassword').value;
+  const errEl = document.getElementById('loginError');
+  errEl.style.display = 'none';
+  if (!email || !pass) { errEl.textContent = 'Preenche email e senha.'; errEl.style.display = ''; return; }
+  if (pass.length < 6) { errEl.textContent = 'Senha precisa ter pelo menos 6 caracteres.'; errEl.style.display = ''; return; }
+  try {
+    await createUserWithEmailAndPassword(auth, email, pass);
+  } catch(e) {
+    errEl.textContent = e.code === 'auth/email-already-in-use' ? 'Email já cadastrado. Clica em Entrar.' : 'Erro ao criar conta.';
+    errEl.style.display = '';
+  }
+};
 
 window.logout = async () => {
   await signOut(auth);
 };
-
-// Timeout fallback - show login if Firebase auth doesn't respond in 5s
-setTimeout(() => {
-  if (document.getElementById('loadingOverlay').style.display !== 'none') {
-    document.getElementById('loadingOverlay').style.display = 'none';
-    document.getElementById('loginScreen').style.display = 'flex';
-  }
-}, 5000);
-
-// First handle any redirect result
-getRedirectResult(auth).catch((e) => console.log('redirect err', e));
 
 onAuthStateChanged(auth, async (user) => {
   document.getElementById('loadingOverlay').style.display = 'none';
